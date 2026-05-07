@@ -1,0 +1,24 @@
+{
+  "buttons": [
+    {
+      "id": 0,
+      "action": "_buttonActionArm",
+      "repeat": false
+    },
+    {
+      "id": 1,
+      "action": "_buttonActionDisarm",
+      "repeat": false
+    },
+    {
+      "id": 2,
+      "action": "_buttonActionTriggerCamera",
+      "repeat": false
+    },
+    {
+      "id": 3,
+      "action": "_buttonActionStepZoomIn",
+      "repeat": true
+    }
+  ]
+}
