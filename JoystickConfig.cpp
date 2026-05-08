@@ -11,6 +11,10 @@
 #include "Joystick.h"
 #include "JoystickConfig.h"
 
+#include "MBUtils.h"
+
+using namespace std;
+
 namespace
 {
     static constexpr const char* kButtonActionArrayGroup = "JoystickButtonActionSettingsArray";
@@ -87,29 +91,66 @@ void Joystick::_resetButtonEventStates()
     }
 }
 
-void Joystick::_loadButtonSettings(const std::string& path) {
-    std::ifstream file(path); //apertura del file per la lettura
-    nlohmann::json j;
-    file >> j;
+bool Joystick::_loadButtonSettings(const std::string& settings) {
+    
+    bool handled = false;
 
-    _assignedButtonActions.clear();
-    _assignedButtonActions.resize(m_numButtons + (4 * m_numHats));
-
-    for (const auto& btn : j["buttons"]) { //scorre tutti gli elementi "buttons" del file json
-        int id = btn["id"];
-        std::string actionName = btn["action"];
-        bool repeat = btn.value("repeat", false); //false nel caso in cui non esista il campo 'repeat'
-
-        if (id < 0 || id >= (m_numButtons + (4 * m_numHats)))
-            continue;
-
-        int time = SDL_GetPerformanceCounter();
-
-        AssignedButtonAction action;
-        action.actionName = actionName;
-        action.assigned = true;
-        action.repeat = repeat;
-        action.time = time;
-        _assignedButtonActions[id] = action;
+    if (_assignedButtonActions.size() != m_numButtons) { //solo quando cambia m_numButtons
+        _assignedButtonActions.clear();
+        _assignedButtonActions.resize(m_numButtons);
     }
+
+    stringstream ss(settings);
+    string item;
+    int id = -1;
+    string actionName;
+    bool repeat = false;
+
+    while (getline(ss, item, ',')) { //un ciclo per ogni elemento di 'BUTTON'
+            stringstream itemStream(item);
+
+            std::string name, values;
+            getline(itemStream, name, ':'); //salva la parte prima dell'uguale in 'name'
+            getline(itemStream, values);
+            //transform(name.begin(), name.end(), name.begin(), ::toupper);
+            name = stripBlankEnds(toupper(name));
+            //name = stripBlankEnds(name);
+            
+            values = stripBlankEnds(values);
+            int ivals = atoi(values.c_str());
+            bool bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || ivals != 0);
+            if (name == "ID") {
+                id = ivals;
+                handled = true;
+            }
+            else if (id >= 0){
+                                
+                if (name == "ACTION") {
+                    actionName = values;
+                    handled &= true;
+                }
+                else if (name == "REPEAT") {
+                    repeat = bvals;
+                    handled &= true;
+                }
+                else
+                    handled &= false;
+            }
+            else {
+                std::cerr << id << " is not a valid button ID." << std::endl;
+                handled = false;
+                }
+        }
+
+    int time = SDL_GetPerformanceCounter();
+
+    AssignedButtonAction action;
+    action.actionName = actionName;
+    action.assigned = true;
+    action.repeat = repeat;
+    action.time = time;
+    _assignedButtonActions[id] = action;
+
+    return handled;
+    
 }

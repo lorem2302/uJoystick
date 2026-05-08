@@ -119,6 +119,24 @@ bool Joystick::Iterate()
   AppCastingMOOSApp::Iterate();
   // Polling logic delegated to JoystickUtils.cpp
   
+  SDL_Event event;
+  while (SDL_PollEvent(&event)) {
+      if (event.type == SDL_QUIT) {
+          cerr << "SDL_QUIT received, shutting down" << endl;
+          return false;
+      }
+      else if (event.type == SDL_JOYDEVICEREMOVED || event.type == SDL_CONTROLLERDEVICEREMOVED) {
+        if (SDL_IsGameController(m_jsIndex) == SDL_TRUE) {
+            SDL_GameControllerClose(m_gameController);
+        }
+        else {
+            SDL_JoystickClose(m_joystick);
+        }
+        SDL_Quit();
+      }
+  }
+
+
   // SDL internal state refresh.
   if (SDL_IsGameController(m_jsIndex) == SDL_TRUE) {
       if (SDL_GameControllerGetAttached(m_gameController) == SDL_FALSE) {
@@ -132,13 +150,8 @@ bool Joystick::Iterate()
         return false;
         }
       }
-      
-  SDL_GameControllerUpdate();
-
-  std::cout << "******************************QUIQUIQUIQUIQUI*************************" << std::endl;
 
   _handleButtons();
-  std::cout << "******************************QUIQUIQUIQUIQUI*************************" << std::endl;
   _handleAxis();
 
   AppCastingMOOSApp::PostReport();
@@ -152,6 +165,61 @@ bool Joystick::Iterate()
 bool Joystick::OnStartUp()
 {
   AppCastingMOOSApp::OnStartUp();
+  
+    // aprire la comunicazione
+  if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
+      std::cerr << "SDL Init failed: " << SDL_GetError() << std::endl;
+      return false;
+  }
+  const int count = SDL_NumJoysticks();
+  if (count <= 0) {
+      cerr << "No joystick/game controller connected" << endl;
+      return false;
+  }
+
+  m_jsIndex = 0;
+
+  if (SDL_IsGameController(m_jsIndex) == SDL_TRUE) {
+      m_gameController = SDL_GameControllerOpen(m_jsIndex); //SDL_GameController
+      if (!m_gameController) { //se ho un puntatore nullo
+          std::cerr << "Error opening Game Controller: " << SDL_GetError() << std::endl;
+          return false;
+      }
+      //info sul game controller
+      SDL_Joystick* sdl_js = SDL_GameControllerGetJoystick(m_gameController);
+      SDL_JoystickGUID guid = SDL_JoystickGetGUID(sdl_js);
+      SDL_JoystickGetGUIDString(guid, m_GUID, sizeof(m_GUID));
+      m_name = SDL_GameControllerName(m_gameController);
+      m_gc_mapping = SDL_GameControllerMapping(m_gameController);
+
+      m_numAxes = SDL_JoystickNumAxes(sdl_js);
+      m_numButtons = SDL_JoystickNumButtons(sdl_js);
+      m_numHats = SDL_JoystickNumHats(sdl_js);
+      m_numTrackballs = SDL_JoystickNumBalls(sdl_js);
+
+      std::cout << "Game controller " << m_name << " connected : GUID = " << m_GUID << std::endl;
+      std::cout << "Mapping: " << m_gc_mapping << std::endl;
+  }
+  else {
+      m_joystick = SDL_JoystickOpen(m_jsIndex); //SDL_Joystick
+      if (!m_joystick) {
+          std::cerr << "Error opening Joystick: " << SDL_GetError() << std::endl;
+          return false;
+      }
+      //info sul joystick
+      SDL_JoystickGUID guid = SDL_JoystickGetGUID(m_joystick);
+      SDL_JoystickGetGUIDString(guid, m_GUID, sizeof(m_GUID));
+      m_name = SDL_JoystickName(m_joystick);
+      m_numAxes = SDL_JoystickNumAxes(m_joystick);
+      m_numButtons = SDL_JoystickNumButtons(m_joystick);
+      m_numHats = SDL_JoystickNumHats(m_joystick);
+      m_numTrackballs = SDL_JoystickNumBalls(m_joystick);
+      std::cout << "Joystick " << m_name << " connected : GUID = " << m_GUID << std::endl;
+      std::cout << "Features: " << m_numAxes << " axes, " << m_numButtons << " buttons, " << m_numHats << " hats, " << m_numTrackballs << " trackballs." << std::endl;
+  }
+
+  _buttonEventStates.resize(m_numButtons);
+  _resetButtonEventStates();
 
   STRING_LIST sParams;
   m_MissionReader.EnableVerbatimQuoting(false);
@@ -223,10 +291,9 @@ bool Joystick::OnStartUp()
             getline(itemStream, name, ':'); //salva la parte prima dell'uguale in 'name'
             getline(itemStream, values);
             name = stripBlankEnds(toupper(name));
-            std::cout << name << std::endl;
             values = stripBlankEnds(values);
             int ivals = atoi(values.c_str());
-            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || dval != 0);
+            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || ivals != 0);
             if (name == "AXIS") {
                 m_axisMap.insert({ rollFunction, ivals });
                 curr_index = ivals;
@@ -254,6 +321,8 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else
+                    handled &= false;
             }
             else {
                 std::cerr << "Index unavailable" << std::endl;
@@ -275,7 +344,7 @@ bool Joystick::OnStartUp()
             name = stripBlankEnds(toupper(name));
             values = stripBlankEnds(values);
             int ivals = atoi(values.c_str());
-            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || dval != 0);
+            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || ivals != 0);
             if (name == "AXIS") {
                 m_axisMap.insert({ pitchFunction, ivals });
                 curr_index = ivals;
@@ -303,6 +372,8 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else
+                    handled &= false;
             }
             else {
                 std::cerr << "Index unavailable" << std::endl;
@@ -322,10 +393,9 @@ bool Joystick::OnStartUp()
             getline(itemStream, name, ':'); //salva la parte prima dell'uguale in 'name'
             getline(itemStream, values);
             name = stripBlankEnds(toupper(name));
-            std::cout << name << std::endl;
             values = stripBlankEnds(values);
             int ivals = atoi(values.c_str());
-            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || dval != 0);
+            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || ivals != 0);
             if (name == "AXIS") {
                 m_axisMap.insert({ yawFunction, ivals });
                 curr_index = ivals;
@@ -353,6 +423,8 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else
+                    handled &= false;
             }
             else {
                 std::cerr << "Index unavailable" << std::endl;
@@ -372,10 +444,9 @@ bool Joystick::OnStartUp()
             getline(itemStream, name, ':'); //salva la parte prima dell'uguale in 'name'
             getline(itemStream, values);
             name = stripBlankEnds(toupper(name));
-            std::cout << name << std::endl;
             values = stripBlankEnds(values);
             int ivals = atoi(values.c_str());
-            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || dval != 0);
+            bool   bvals = (strcasecmp(values.c_str(), "TRUE") == 0 || ivals != 0);
             if (name == "AXIS") {
                 m_axisMap.insert({ throttleFunction, ivals });
                 curr_index = ivals;
@@ -403,6 +474,8 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else
+                    handled &= false;
             }
             else {
                 std::cerr << "Index unavailable" << std::endl;
@@ -419,70 +492,14 @@ bool Joystick::OnStartUp()
         m_buttonFreq = dval;
         handled = true;
     }
-    else if (param == "BUTTON_SETTINGS") {
-        string path = value;
-        _loadButtonSettings(path); // Initial configuration delegated to JoystickConfig.cpp
-        handled = true;
+    else if (param == "BUTTON") {
+        string settings = value;
+        handled = _loadButtonSettings(settings); // Initial configuration delegated to JoystickConfig.cpp
     }
 
     if(!handled)
       reportUnhandledConfigWarning(orig);
   }
-
-  // aprire la comunicazione
-  if (SDL_Init(SDL_INIT_JOYSTICK | SDL_INIT_GAMECONTROLLER) != 0) {
-      std::cerr << "SDL Init failed: " << SDL_GetError() << std::endl;
-      return false;
-  }
-  const int count = SDL_NumJoysticks();
-  if (count <= 0) {
-      cerr << "No joystick/game controller connected" << endl;
-      return false;
-  }
-
-  m_jsIndex = 0;
-
-  if (SDL_IsGameController(m_jsIndex) == SDL_TRUE) {
-      m_gameController = SDL_GameControllerOpen(m_jsIndex); //SDL_GameController
-      if (!m_gameController) { //se ho un puntatore nullo
-          std::cerr << "Error opening Game Controller: " << SDL_GetError() << std::endl;
-          return false;
-      }
-      //info sul game controller
-      SDL_Joystick* sdl_js = SDL_GameControllerGetJoystick(m_gameController);
-      SDL_JoystickGUID guid = SDL_JoystickGetGUID(sdl_js);
-      SDL_JoystickGetGUIDString(guid, m_GUID, sizeof(m_GUID));
-      m_name = SDL_GameControllerName(m_gameController);
-      m_gc_mapping = SDL_GameControllerMapping(m_gameController);
-
-      m_numAxes = SDL_JoystickNumAxes(sdl_js);
-      m_numButtons = SDL_JoystickNumButtons(sdl_js);
-      m_numHats = SDL_JoystickNumHats(sdl_js);
-      m_numTrackballs = SDL_JoystickNumBalls(sdl_js);
-
-      std::cout << "Game controller " << m_name << " connected : GUID = " << m_GUID << std::endl;
-      std::cout << "Mapping: " << m_gc_mapping << std::endl;
-  }
-  else {
-      m_joystick = SDL_JoystickOpen(m_jsIndex); //SDL_Joystick
-      if (!m_joystick) {
-          std::cerr << "Error opening Joystick: " << SDL_GetError() << std::endl;
-          return false;
-      }
-      //info sul joystick
-      SDL_JoystickGUID guid = SDL_JoystickGetGUID(m_joystick);
-      SDL_JoystickGetGUIDString(guid, m_GUID, sizeof(m_GUID));
-      m_name = SDL_JoystickName(m_joystick);
-      m_numAxes = SDL_JoystickNumAxes(m_joystick);
-      m_numButtons = SDL_JoystickNumButtons(m_joystick);
-      m_numHats = SDL_JoystickNumHats(m_joystick);
-      m_numTrackballs = SDL_JoystickNumBalls(m_joystick);
-      std::cout << "Joystick " << m_name << " connected : GUID = " << m_GUID << std::endl;
-      std::cout << "Features: " << m_numAxes << " axes, " << m_numButtons << " buttons, " << m_numHats << " hats, " << m_numTrackballs << " trackballs." << std::endl;
-  }
-
-  _buttonEventStates.resize(m_numButtons);
-  _resetButtonEventStates();
   
   registerVariables();	
   return(true);

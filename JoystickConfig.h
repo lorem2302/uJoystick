@@ -13,4 +13,6 @@
 #include "Joystick.h"
 #include "SDL_timer.h"
 
+#include <string>
+
 #endif

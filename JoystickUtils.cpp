@@ -59,14 +59,14 @@ void Joystick::_handleAxis()
 {
     const int axisDelay = static_cast<int>(1000.0 / m_axisFreq); //tempo tra due aggiornamenti in ms
     static Uint64 last = 0;
-    std::cout << "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << std::endl;
+    
     Uint64 now = SDL_GetPerformanceCounter();
     Uint64 freq = SDL_GetPerformanceFrequency();
-    if (((now - last)/freq) <= axisDelay) {
+    if (((now - last)*1000/freq) <= axisDelay) {
         last = now;
         return;
     }
-    std::cout << "????????????????????????????????????????????" << std::endl;
+    
     //_axisElapsedTimer.start();
 
     if (m_pollingFor == NotPolling) {
@@ -259,9 +259,7 @@ void Joystick::_handleButtons()
         return;
     }
 
-    std::cout << "tutto il giorno sopra i libri ora voglio stare easy cazzo mene della crisi faccio solo la 6 litri" << std::endl; 
     _updateButtonEventStates(_buttonEventStates);
-    std::cout << "sboccing like no tomorrow and" << std::endl;
 
     if (m_pollingFor == PollingForConfiguration) {
         for (int buttonIndex = 0; buttonIndex < m_numButtons; buttonIndex++) {
@@ -282,13 +280,13 @@ void Joystick::_handleButtons()
         const int buttonDelay = static_cast<int>(1000.0 / m_buttonFreq); //ogni quanto ripeto azione mentre il bottone è premuto
         Uint64 start = SDL_GetPerformanceCounter();
 
-        for (int buttonIndex = 0; buttonIndex < (m_numButtons + (4 * m_numHats)); buttonIndex++) {
+        for (int buttonIndex = 0; buttonIndex < m_numButtons; buttonIndex++) {
             if (_assignedButtonActions[buttonIndex].assigned == false) { //vettore con associata una funzione per ogni tasto
                 continue;
             }
             auto& assignedAction = _assignedButtonActions[buttonIndex]; //da JoystickConfig.cpp -> _loadButtonSettings
 
-            const std::string buttonAction = assignedAction.actionName;
+            const std::string buttonAction = assignedAction.actionName; //se al tasto non è assegnata alcuna funzione, non fare niente
             if (buttonAction.empty() || (buttonAction == "_buttonActionNone")) {
                 continue;
             }
@@ -324,7 +322,7 @@ void Joystick::_handleButtons()
 bool Joystick::_getButton(int idx) const
 {
     // First try the standardized gamepad set if idx is inside that set
-    if (m_gameController && (idx >= 0) && (idx < m_numButtons)) {
+    if (m_gameController && (idx >= 0) && (idx < m_numButtons + 4)) {
         return SDL_GameControllerGetButton(m_gameController, static_cast<SDL_GameControllerButton>(idx));
     }
 

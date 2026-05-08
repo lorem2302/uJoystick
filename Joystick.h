@@ -135,7 +135,7 @@ private: // Internal helpers
   //void _resetAxisCalibrationData();
   //void _resetButtonActionData();
   void _resetButtonEventStates();
-  void _loadButtonSettings(const std::string& path);
+  bool _loadButtonSettings(const std::string& settings);
 
   void _handleAxis();
   void _handleButtons();
