@@ -262,7 +262,7 @@ void Joystick::_handleButtons()
     _updateButtonEventStates(_buttonEventStates);
 
     if (m_pollingFor == PollingForConfiguration) {
-        for (int buttonIndex = 0; buttonIndex < m_numButtons; buttonIndex++) {
+        for (int buttonIndex = 0; buttonIndex < (m_numButtons + 4*m_numHats) ; buttonIndex++) {
             if (_buttonEventStates[buttonIndex] == ButtonEventDownTransition) {
                 std::cout << "Button pressed - button" << buttonIndex << std::endl;
                 std::string str = "BUTTON_" + std::to_string(buttonIndex);
@@ -280,7 +280,7 @@ void Joystick::_handleButtons()
         const int buttonDelay = static_cast<int>(1000.0 / m_buttonFreq); //ogni quanto ripeto azione mentre il bottone è premuto
         Uint64 start = SDL_GetPerformanceCounter();
 
-        for (int buttonIndex = 0; buttonIndex < m_numButtons; buttonIndex++) {
+        for (int buttonIndex = 0; buttonIndex < (m_numButtons + 4*m_numHats); buttonIndex++) {
             if (_assignedButtonActions[buttonIndex].assigned == false) { //vettore con associata una funzione per ogni tasto
                 continue;
             }
@@ -361,9 +361,12 @@ bool Joystick::_getHat(int hat, int idx) const
     if (idx < 0 || static_cast<size_t>(idx) >= hatButtons.size()) {
         return false;
     }
-
-    return ((SDL_JoystickGetHat(m_joystick, hat) & hatButtons[idx]) != 0); //restituisce il valore del tasto dell'hat, solo per il joystick (nel game controller sono considerati bottoni)
-    //confronta il valore di SDL_JoystickGetHat con il valore del tasto corrente per capire se attivo
+    
+    if (SDL_IsGameController(m_jsIndex) == SDL_TRUE)
+        return ((SDL_JoystickGetHat(SDL_GameControllerGetJoystick(m_gameController), hat) & hatButtons[idx]) != 0); //restituisce il valore del tasto dell'hat, solo per il joystick (nel game controller sono considerati bottoni)
+    //confronta il valore di SDL_JoystickGetHat con il valore del tasto considerato per capire se attivo
+    else
+        return ((SDL_JoystickGetHat(m_joystick, hat) & hatButtons[idx]) != 0);
 }
 
 void Joystick::_updateButtonEventStates(std::vector<ButtonEvent_t>& buttonEventStates)

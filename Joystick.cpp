@@ -218,7 +218,7 @@ bool Joystick::OnStartUp()
       std::cout << "Features: " << m_numAxes << " axes, " << m_numButtons << " buttons, " << m_numHats << " hats, " << m_numTrackballs << " trackballs." << std::endl;
   }
 
-  _buttonEventStates.resize(m_numButtons);
+  _buttonEventStates.resize(m_numButtons + 4);
   _resetButtonEventStates();
 
   STRING_LIST sParams;
