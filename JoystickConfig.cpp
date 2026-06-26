@@ -95,9 +95,9 @@ bool Joystick::_loadButtonSettings(const std::string& settings) {
     
     bool handled = false;
 
-    if (_assignedButtonActions.size() != m_numButtons) { //solo quando cambia m_numButtons
+    if (_assignedButtonActions.size() != (m_numButtons + 4*m_numHats)) { //solo quando cambia m_numButtons
         _assignedButtonActions.clear();
-        _assignedButtonActions.resize(m_numButtons);
+        _assignedButtonActions.resize(m_numButtons + 4*m_numHats);
     }
 
     stringstream ss(settings);
