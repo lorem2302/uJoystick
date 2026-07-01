@@ -54,7 +54,15 @@ Joystick::Joystick()
 
     //stato
     m_pollingFor = NotPolling;
-
+    
+    //riempimento di m_stateMap
+    m_stateMap["ROLLPITCHTOGGLE"] = &m_rollPitchToggle;
+    m_stateMap["DEPTHHOLDMODE"] = &m_depthHoldMode;
+    m_stateMap["SHIFT"] = &m_shift;
+    m_stateMap["MANUALMODE"] = &m_manualMode;
+    m_stateMap["STABILIZEMODE"] = &m_stabilizeMode;
+    m_stateMap["CAMERATILTCENTER"] = &m_cameraTiltCenter;
+    m_stateMap["TOGGLEINPUTHOLD"] = &m_toggleInputHold;
 }
 
 //---------------------------------------------------------
@@ -82,7 +90,21 @@ bool Joystick::OnNewMail(MOOSMSG_LIST &NewMail)
   MOOSMSG_LIST::iterator p;
   for(p=NewMail.begin(); p!=NewMail.end(); p++) {
     CMOOSMsg &msg = *p;
-    string key    = msg.GetKey();
+    string key = toupper(msg.GetKey());
+    string str = msg.GetString();
+    double dval = msg.GetDouble();
+    bool bval;
+
+    if (dval == 1)
+      bval = true;
+    else if (dval == 0)
+      bval = false;
+    
+    /*
+    std::cout << "****************************************" << std::endl;  
+    std::cout << "messaggio: " << key << "valore: " << bval << std::endl;
+    std::cout << "****************************************" << std::endl;
+    */
 
 #if 0 // Keep these around just for template
     string comm  = msg.GetCommunity();
@@ -94,8 +116,44 @@ bool Joystick::OnNewMail(MOOSMSG_LIST &NewMail)
     bool   mstr  = msg.IsString();
 #endif
 
-     if(key != "APPCAST_REQ") // handled by AppCastingMOOSApp
-       reportRunWarning("Unhandled Mail: " + key);
+      if (key == "ROLLPITCHTOGGLE")
+        m_rollPitchToggle = bval;
+      /*
+      else if (key == "CAMERATILTDOWN")
+        m_cameraTiltDown = bval;
+      else if (key == "CAMERATILTUP") 
+        m_cameraTiltUp = bval;
+      */
+      else if (key == "DEPTHHOLDMODE")
+        m_depthHoldMode = bval;
+      else if (key == "SHIFT")
+        m_shift = bval;
+      else if (key == "MANUALMODE")
+        m_manualMode = bval;
+      else if (key == "STABILIZEMODE")
+        m_stabilizeMode = bval;
+      /*
+      else if (key == "INCREASEGAIN")
+        m_increaseGain = bval;
+      else if (key == "LIGHTSBRIGHTER")
+        m_lightsBrighter = bval;
+      else if (key == "LIGHTSDIMMER")
+        m_lightsDimmer = bval;
+      else if (key == "DECREASEGAIN")
+        m_decreaseGain = bval;
+      else if (key == "TRIMPITCHFORWARD")
+        m_trimPitchForward = bval;
+      else if (key == "TRIMPITCHBACKWARD")
+        m_trimPitchBackward = bval;
+      else if (key == "TRIMROLLLEFT")
+        m_trimRollLeft = bval;
+      else if (key == "TRIMROLLRIGHT")
+        m_trimRollRight = bval;
+      */
+      else if (key == "CAMERATILTCENTER")
+        m_cameraTiltCenter = bval;
+      else if (key == "TOGGLEINPUTHOLD")
+        m_toggleInputHold = bval;
    }
 	
    return(true);
@@ -321,6 +379,14 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else if (name == "FUNCTION2") {
+                    m_axisCalibration[curr_index].function2 = values;
+                    handled &= true;
+                }
+                else if (name == "2ND_FCN") {
+                    m_axisCalibration[curr_index].flag = m_stateMap.at(toupper(values));
+                    handled &= true;
+                }
                 else
                     handled &= false;
             }
@@ -370,6 +436,14 @@ bool Joystick::OnStartUp()
                 }
                 else if (name == "REVERSED") {
                     m_axisCalibration[curr_index].reversed = bvals;
+                    handled &= true;
+                }
+                else if (name == "FUNCTION2") {
+                    m_axisCalibration[curr_index].function2 = values;
+                    handled &= true;
+                }
+                else if (name == "2ND_FCN") {
+                    m_axisCalibration[curr_index].flag = m_stateMap.at(toupper(values));
                     handled &= true;
                 }
                 else
@@ -423,6 +497,14 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else if (name == "FUNCTION2") {
+                    m_axisCalibration[curr_index].function2 = values;
+                    handled &= true;
+                }
+                else if (name == "2ND_FCN") {
+                    m_axisCalibration[curr_index].flag = m_stateMap.at(toupper(values));
+                    handled &= true;
+                }
                 else
                     handled &= false;
             }
@@ -474,6 +556,14 @@ bool Joystick::OnStartUp()
                     m_axisCalibration[curr_index].reversed = bvals;
                     handled &= true;
                 }
+                else if (name == "FUNCTION2") {
+                    m_axisCalibration[curr_index].function2 = values;
+                    handled &= true;
+                }
+                else if (name == "2ND_FCN") {
+                    m_axisCalibration[curr_index].flag = m_stateMap.at(toupper(values));
+                    handled &= true;
+                }
                 else
                     handled &= false;
             }
@@ -511,7 +601,14 @@ bool Joystick::OnStartUp()
 void Joystick::registerVariables()
 {
   AppCastingMOOSApp::RegisterVariables();
-  // Register("FOOBAR", 0);
+  Register("RollPitchToggle", 0);
+  Register("DepthHoldMode", 0);
+  Register("Shift", 0);
+  Register("ManualMode", 0);
+  Register("StabilizeMode", 0);
+  Register("CameraTiltCenter", 0);
+  Register("ToggleInputHold", 0);
+  
 }
 
 

@@ -104,6 +104,8 @@ bool Joystick::_loadButtonSettings(const std::string& settings) {
     string item;
     int id = -1;
     string actionName;
+    string actionName2;
+    bool* action2 = nullptr;
     bool repeat = false;
 
     while (getline(ss, item, ',')) { //un ciclo per ogni elemento di 'BUTTON'
@@ -129,6 +131,14 @@ bool Joystick::_loadButtonSettings(const std::string& settings) {
                     actionName = values;
                     handled &= true;
                 }
+                else if (name == "ACTION2") {
+                    actionName2 = values;
+                    handled &= true;
+                }
+                else if (name == "2ND_FCN") {
+                    action2 = m_stateMap.at(toupper(values)); // Bottone che premuto dà accesso alla seconda funzione del tasto //PUNTATORE ALLA VARIABILE CHE DECIDE LA SECONDA FUNZIONE DEI TASTI
+                    handled &= true;
+                }
                 else if (name == "REPEAT") {
                     repeat = bvals;
                     handled &= true;
@@ -146,6 +156,8 @@ bool Joystick::_loadButtonSettings(const std::string& settings) {
 
     AssignedButtonAction action;
     action.actionName = actionName;
+    action.actionName2 = actionName2;
+    action.action2 = action2;
     action.assigned = true;
     action.repeat = repeat;
     action.time = time;

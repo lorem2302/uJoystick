@@ -75,6 +75,8 @@ private:
     int center = 0;
     int deadband = 0;
     bool reversed = false;
+    std::string function2;
+    bool* flag = nullptr;
 
     void reset() {
       min = AXIS_MIN;
@@ -87,6 +89,8 @@ private:
 
   struct AssignedButtonAction {
     std::string actionName = "_buttonActionNone";
+    std::string actionName2 = "_buttonActionNone";
+    bool* action2 = nullptr;
     bool assigned = false;
     bool repeat = false;
     uint64_t time = 0;
@@ -106,10 +110,31 @@ private: // Configuration variables
     double m_buttonFreq;
 
     std::vector<AxisCalibration_t> m_axisCalibration;
+    
+private: // Joystick variables
+    bool m_rollPitchToggle = false;
+    //bool m_cameraTiltDown = false;
+    //bool m_cameraTiltUp = false;
+    bool m_depthHoldMode = false;
+    bool m_shift = false;
+    bool m_manualMode = false;
+    bool m_stabilizeMode = false;
+    //bool m_increaseGain = false;
+    //bool m_lightsBrighter = false;
+    //bool m_lightsDimmer = false;
+    //bool m_decreaseGain = false;
+    //bool m_trimPitchForward = false;
+    //bool m_trimPitchBackward = false;
+    //bool m_trimRollLeft = false;
+    //bool m_trimRollRight = false;
+    bool m_cameraTiltCenter = false;
+    bool m_toggleInputHold = false;
 
 private: // Mappings
     std::unordered_map<AxisFunction_t, int> m_axisMap;
     std::vector<AssignedButtonAction> _assignedButtonActions; //mappatura bottoni-azione
+    
+    std::unordered_map<std::string, bool*> m_stateMap; //mappatura nome-puntatore a relativa variabile
 
 private: // SDL / device state
   SDL_Joystick* m_joystick;

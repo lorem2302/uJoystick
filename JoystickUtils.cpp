@@ -38,6 +38,24 @@ static constexpr const char* _buttonActionGimbalYawFollow = "_buttonActionGimbal
 static constexpr const char* _buttonActionEmergencyStop = "_buttonActionEmergencyStop";
 static constexpr const char* _buttonActionMotorInterlockEnable = "_buttonActionMotorInterlockEnable";
 static constexpr const char* _buttonActionMotorInterlockDisable = "_buttonActionMotorInterlockDisable";
+//BlueRov2
+static constexpr const char* _buttonRollPitchToggle = "_buttonRollPitchToggle";
+static constexpr const char* _buttonCameraTiltDown = "_buttonCameraTiltDown";
+static constexpr const char* _buttonCameraTiltUp = "_buttonCameraTiltUp";
+static constexpr const char* _buttonDepthHoldMode = "_buttonDepthHoldMode";
+static constexpr const char* _buttonShift = "_buttonShift";
+static constexpr const char* _buttonManualMode = "_buttonManualMode";
+static constexpr const char* _buttonStabilizeMode = "_buttonStabilizeMode";
+static constexpr const char* _buttonIncreaseGain = "_buttonIncreaseGain";
+static constexpr const char* _buttonLightsBrighter = "_buttonLightsBrighter";
+static constexpr const char* _buttonLightsDimmer = "_buttonLightsDimmer";
+static constexpr const char* _buttonDecreaseGain = "_buttonDecreaseGain";
+static constexpr const char* _buttonTrimPitchForward = "_buttonTrimPitchForward";
+static constexpr const char* _buttonTrimPitchBackward = "_buttonTrimPitchBackward";
+static constexpr const char* _buttonTrimRollLeft = "_buttonTrimRollLeft";
+static constexpr const char* _buttonTrimRollRight = "_buttonTrimRollRight";
+static constexpr const char* _buttonCameraTiltCenter = "_buttonCameraTiltCenter";
+static constexpr const char* _buttonToggleInputHold = "_buttonToggleInputHold";
 }
 
 /*
@@ -170,11 +188,26 @@ void Joystick::_handleAxis()
 
         now = SDL_GetPerformanceCounter();
         last = now;
-
-        Notify("ROLL", roll);
-        Notify("PITCH", pitch);
-        Notify("YAW", yaw);
-        Notify("THROTTLE", throttle);
+        
+        if (m_axisCalibration[m_axisMap[Joystick::rollFunction]].flag != nullptr && *m_axisCalibration[m_axisMap[Joystick::rollFunction]].flag == true)
+          Notify(m_axisCalibration[m_axisMap[Joystick::rollFunction]].function2, roll);
+        else 
+          Notify("ROLL", roll);
+        
+        if (m_axisCalibration[m_axisMap[Joystick::pitchFunction]].flag != nullptr && *m_axisCalibration[m_axisMap[Joystick::pitchFunction]].flag == true)
+          Notify(m_axisCalibration[m_axisMap[Joystick::pitchFunction]].function2, pitch);
+        else
+          Notify("PITCH", pitch);
+        
+        if (m_axisCalibration[m_axisMap[Joystick::yawFunction]].flag != nullptr && *m_axisCalibration[m_axisMap[Joystick::yawFunction]].flag == true)
+          Notify(m_axisCalibration[m_axisMap[Joystick::yawFunction]].function2, yaw);
+        else
+          Notify("YAW", yaw);
+        
+        if (m_axisCalibration[m_axisMap[Joystick::throttleFunction]].flag != nullptr && *m_axisCalibration[m_axisMap[Joystick::throttleFunction]].flag == true)
+          Notify(m_axisCalibration[m_axisMap[Joystick::throttleFunction]].function2, throttle);
+        else
+          Notify("THROTTLE", throttle);
 
         //const uint16_t lowButtons = static_cast<uint16_t>(buttonPressedBits & 0xFFFF); //a partire dai LSB
         //const uint16_t highButtons = static_cast<uint16_t>((buttonPressedBits >> 16) & 0xFFFF); //prende i bit 16-31 e fa operazione di AND bit a bit con 1111 1111 .... 1111
@@ -285,8 +318,14 @@ void Joystick::_handleButtons()
                 continue;
             }
             auto& assignedAction = _assignedButtonActions[buttonIndex]; //da JoystickConfig.cpp -> _loadButtonSettings
+            //std::string buttonAction = assignedAction.actionName;
+            std::string buttonAction;
 
-            const std::string buttonAction = assignedAction.actionName; //se al tasto non è assegnata alcuna funzione, non fare niente
+            if (assignedAction.action2 != nullptr)
+                buttonAction = *assignedAction.action2 ? assignedAction.actionName2 : assignedAction.actionName; //se al tasto non è assegnata alcuna funzione, non fare niente
+            else
+                buttonAction = assignedAction.actionName;
+            
             if (buttonAction.empty() || (buttonAction == "_buttonActionNone")) {
                 continue;
             }
@@ -363,8 +402,7 @@ bool Joystick::_getHat(int hat, int idx) const
     }
     
     if (SDL_IsGameController(m_jsIndex) == SDL_TRUE)
-        return ((SDL_JoystickGetHat(SDL_GameControllerGetJoystick(m_gameController), hat) & hatButtons[idx]) != 0); //restituisce il valore del tasto dell'hat, solo per il joystick (nel game controller sono considerati bottoni)
-    //confronta il valore di SDL_JoystickGetHat con il valore del tasto considerato per capire se attivo
+        return ((SDL_JoystickGetHat(SDL_GameControllerGetJoystick(m_gameController), hat) & hatButtons[idx]) != 0); //restituisce il valore del tasto dell'hat, solo per il joystick (nel game controller sono considerati bottoni) //confronta il valore di SDL_JoystickGetHat con il valore del tasto considerato per capire se attivo
     else
         return ((SDL_JoystickGetHat(m_joystick, hat) & hatButtons[idx]) != 0);
 }
@@ -448,6 +486,34 @@ void Joystick::_executeButtonAction(const std::string& action, ButtonEvent_t but
         //{ _buttonActionLandingGearRetract,      ButtonEventDownTransition,  [this]() { emit landingGearRetract(); } },
         { _buttonActionMotorInterlockEnable,    ButtonEventDownTransition,  [this]() { Notify("motorInterlock", true); } },
         { _buttonActionMotorInterlockDisable,   ButtonEventDownTransition,  [this]() { Notify("motorInterlock", false); } },
+        // BlueROV2
+        { _buttonRollPitchToggle,               ButtonEventDownTransition,  [this]() { Notify("RollPitchToggle", !m_rollPitchToggle); } },
+        { _buttonCameraTiltDown,                ButtonEventDownTransition,  [this]() { Notify("CameraTiltDown", true); } },
+        { _buttonCameraTiltDown,                ButtonEventUpTransition,    [this]() { Notify("CameraTiltDown", false); } },
+        { _buttonCameraTiltUp,                  ButtonEventDownTransition,  [this]() { Notify("CameraTiltUp", true); } },
+        { _buttonCameraTiltUp,                  ButtonEventUpTransition,    [this]() { Notify("CameraTiltUp", false); } },
+        { _buttonDepthHoldMode,                 ButtonEventDownTransition,  [this]() { Notify("DepthHoldMode", !m_depthHoldMode); } },
+        { _buttonShift,                         ButtonEventDownTransition,  [this]() { Notify("Shift", !m_shift); } },
+        { _buttonManualMode,                    ButtonEventDownTransition,  [this]() { Notify("ManualMode", !m_manualMode); } },
+        { _buttonStabilizeMode,                 ButtonEventDownTransition,  [this]() { Notify("StabilizeMode", !m_stabilizeMode); } },
+        { _buttonIncreaseGain,                  ButtonEventDownTransition,  [this]() { Notify("IncreaseGain", true); } },
+        { _buttonIncreaseGain,                  ButtonEventUpTransition,    [this]() { Notify("IncreaseGain", false); } },
+        { _buttonLightsBrighter,                ButtonEventDownTransition,  [this]() { Notify("LightsBrighter", true); } },
+        { _buttonLightsBrighter,                ButtonEventUpTransition,    [this]() { Notify("LightsBrighter", false); } },
+        { _buttonLightsDimmer,                  ButtonEventDownTransition,  [this]() { Notify("LightsDimmer", true); } },
+        { _buttonLightsDimmer,                  ButtonEventUpTransition,    [this]() { Notify("LightsDimmer", false); } },
+        { _buttonDecreaseGain,                  ButtonEventDownTransition,  [this]() { Notify("DecreaseGain", true); } },
+        { _buttonDecreaseGain,                  ButtonEventUpTransition,    [this]() { Notify("DecreaseGain", false); } },
+        { _buttonTrimPitchForward,              ButtonEventDownTransition,  [this]() { Notify("TrimPitchForward", true); } },
+        { _buttonTrimPitchForward,              ButtonEventUpTransition,    [this]() { Notify("TrimPitchForward", false); } },
+        { _buttonTrimPitchBackward,             ButtonEventDownTransition,  [this]() { Notify("TrimPitchBackward", true); } },
+        { _buttonTrimPitchBackward,             ButtonEventUpTransition,    [this]() { Notify("TrimPitchBackward", false); } },
+        { _buttonTrimRollLeft,                  ButtonEventDownTransition,  [this]() { Notify("TrimRollLeft", true); } },
+        { _buttonTrimRollLeft,                  ButtonEventUpTransition,    [this]() { Notify("TrimRollLeft", false); } },
+        { _buttonTrimRollRight,                 ButtonEventDownTransition,  [this]() { Notify("TrimRollRight", true); } },
+        { _buttonTrimRollRight,                 ButtonEventUpTransition,    [this]() { Notify("TrimRollRight", false); } },
+        { _buttonToggleInputHold,               ButtonEventDownTransition,  [this]() { Notify("ToggleInputHold", !m_toggleInputHold); } },
+        { _buttonCameraTiltCenter,              ButtonEventDownTransition,  [this]() { Notify("CameraTiltCenter", !m_cameraTiltCenter); } },
         });
 
     // Now look for an action match
